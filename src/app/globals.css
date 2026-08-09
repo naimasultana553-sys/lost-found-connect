@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-[#faf8f6] font-sans text-slate-900 antialiased;
+}
+
+/* Consistent focus ring */
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-brand-500;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
