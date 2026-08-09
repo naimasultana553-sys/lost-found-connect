@@ -12,6 +12,7 @@
 import sharp from "sharp";
 import path from "path";
 import { access, readFile } from "fs/promises";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Compute the 64-bit dHash of an image file on disk.
@@ -51,15 +52,18 @@ export async function computeImageHashFromBuffer(buffer: Buffer): Promise<string
 }
 
 /**
- * Compute the dHash for any stored image URL. Remote URLs (e.g. Vercel Blob)
- * are fetched; local URLs (e.g. /uploads/...) are read from disk.
+ * Compute the dHash for any stored image URL. URLs of DB-stored images
+ * (/api/image/<id>) are read from the database; local URLs
+ * (e.g. /uploads/...) are read from disk.
  */
 export async function computeImageHashFromUrl(imageUrl: string): Promise<string | null> {
   try {
-    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-      const res = await fetch(imageUrl);
-      if (!res.ok) return null;
-      return computeImageHashFromBuffer(Buffer.from(await res.arrayBuffer()));
+    if (imageUrl.startsWith("/api/image/")) {
+      const image = await prisma.image.findUnique({
+        where: { id: imageUrl.slice("/api/image/".length) },
+      });
+      if (!image) return null;
+      return computeImageHashFromBuffer(image.data);
     }
     return computeImageHash(resolveImagePath(imageUrl));
   } catch {

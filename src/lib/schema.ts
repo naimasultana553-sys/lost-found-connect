@@ -8,6 +8,12 @@
  * individual statements rather than one multi-line script.
  */
 export const SCHEMA_STATEMENTS: string[] = [
+  `CREATE TABLE "images" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "data" BLOB NOT NULL,
+    "mimeType" TEXT NOT NULL DEFAULT 'image/jpeg',
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
   `CREATE TABLE "users" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
