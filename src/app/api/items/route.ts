@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/auth";
 import { createItemSchema } from "@/lib/validators";
-import { computeImageHash, resolveImagePath } from "@/matching/imageMatcher";
+import { computeImageHashFromUrl } from "@/matching/imageMatcher";
 import { computeMatchScore } from "@/matching/score";
 import {
   processFoundItemMatches,
@@ -129,8 +129,8 @@ export async function POST(req: NextRequest) {
 
   try {
     // Compute the perceptual hash from the stored image. Best-effort: a
-    // failure (e.g. file missing) just means the image contributes 0.
-    const imageHash = await computeImageHash(resolveImagePath(imageUrl));
+    // failure (e.g. unreachable image) just means the image contributes 0.
+    const imageHash = await computeImageHashFromUrl(imageUrl);
 
     if (type === "lost") {
       const item = await prisma.lostItem.create({

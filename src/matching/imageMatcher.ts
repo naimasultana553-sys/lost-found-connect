@@ -11,7 +11,7 @@
  */
 import sharp from "sharp";
 import path from "path";
-import { access } from "fs/promises";
+import { access, readFile } from "fs/promises";
 
 /**
  * Compute the 64-bit dHash of an image file on disk.
@@ -24,8 +24,13 @@ export async function computeImageHash(filePath: string): Promise<string | null>
     return null;
   }
 
+  return computeImageHashFromBuffer(await readFile(filePath));
+}
+
+/** Compute the 64-bit dHash of raw image bytes. Returns null when undecodable. */
+export async function computeImageHashFromBuffer(buffer: Buffer): Promise<string | null> {
   try {
-    const { data } = await sharp(filePath)
+    const { data } = await sharp(buffer)
       .resize(9, 8, { fit: "fill", position: "centre" })
       .grayscale()
       .raw()
@@ -40,6 +45,23 @@ export async function computeImageHash(filePath: string): Promise<string | null>
       }
     }
     return bits;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Compute the dHash for any stored image URL. Remote URLs (e.g. Vercel Blob)
+ * are fetched; local URLs (e.g. /uploads/...) are read from disk.
+ */
+export async function computeImageHashFromUrl(imageUrl: string): Promise<string | null> {
+  try {
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      const res = await fetch(imageUrl);
+      if (!res.ok) return null;
+      return computeImageHashFromBuffer(Buffer.from(await res.arrayBuffer()));
+    }
+    return computeImageHash(resolveImagePath(imageUrl));
   } catch {
     return null;
   }
