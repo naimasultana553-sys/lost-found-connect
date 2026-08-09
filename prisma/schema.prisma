@@ -19,6 +19,8 @@ model Image {
   data      Bytes
   mimeType  String   @default("image/jpeg")
   createdAt DateTime @default(now())
+
+  @@map("images")
 }
 
 model User {

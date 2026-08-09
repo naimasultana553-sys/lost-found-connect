@@ -33,3 +33,6 @@ prisma/*.db-journal
 
 # typescript
 *.tsbuildinfo
+
+.vercel
+.env*
