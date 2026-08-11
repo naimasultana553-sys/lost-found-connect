@@ -70,27 +70,67 @@ model FoundItem {
 }
 
 // A "possible match" — never a confirmed match. The system only suggests.
+// status: POSSIBLE (suggested) | OWNER_INTERESTED (claim pending) | CONNECTED (accepted)
 model Match {
   id              String   @id @default(auto()) @map("_id") @db.ObjectId
   lostItemId      String   @db.ObjectId
   foundItemId     String   @db.ObjectId
   similarityScore Int // 0-99 combined score (image + text + location + date)
   imageScore      Int? // 0-100 AI (Gemini) image similarity at match time; null = dHash fallback
-  status          String   @default("POSSIBLE") // POSSIBLE | OWNER_INTERESTED
+  status          String   @default("POSSIBLE") // POSSIBLE | OWNER_INTERESTED | CONNECTED
   createdAt       DateTime @default(now())
 
   @@unique([lostItemId, foundItemId])
   @@map("matches")
 }
 
-model Notification {
+// An ownership claim from the lost-item owner to the finder. The finder must
+// explicitly accept before the two are connected. Never auto-confirms.
+// status: PENDING | ACCEPTED | REJECTED
+model Claim {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  matchId     String   @db.ObjectId
+  ownerUserId String   @db.ObjectId
+  detail      String // identifying detail the owner provides to prove ownership
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now())
+
+  @@map("claims")
+}
+
+// A private conversation created when a claim is accepted. Only the two
+// participants (lost-item reporter + found-item reporter) may access it.
+model Conversation {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @db.ObjectId
-  matchId   String?  @db.ObjectId
-  title     String
-  message   String
-  isRead    Boolean  @default(false)
+  matchId   String   @unique @db.ObjectId
   createdAt DateTime @default(now())
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  conversationId String   @db.ObjectId
+  senderId       String   @db.ObjectId
+  text           String
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  @@map("messages")
+}
+
+// type: MATCH (possible match) | CLAIM (new claim) | CLAIM_ACCEPTED |
+//        CLAIM_REJECTED | MESSAGE (new chat message) | RETURNED
+model Notification {
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId         String   @db.ObjectId
+  matchId        String?  @db.ObjectId
+  conversationId String?  @db.ObjectId
+  type           String   @default("MATCH")
+  title          String
+  message        String
+  isRead         Boolean  @default(false)
+  createdAt      DateTime @default(now())
 
   @@map("notifications")
 }

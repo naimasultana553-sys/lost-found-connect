@@ -5,6 +5,7 @@ const STATUS_STYLES: Record<string, string> = {
   POSSIBLE_MATCH: "bg-secondary-container text-secondary",
   AVAILABLE: "bg-secondary-container text-secondary",
   MATCHED: "bg-primary text-on-primary",
+  CONNECTED: "bg-secondary-container text-secondary",
   RETURNED: "bg-surface-container-highest text-on-surface-variant",
   OWNER_INTERESTED: "bg-primary text-on-primary",
 };
@@ -14,7 +15,8 @@ const STATUS_LABELS: Record<string, string> = {
   POSSIBLE_MATCH: "Possible Match",
   AVAILABLE: "Available",
   MATCHED: "Matched",
-  RETURNED: "Returned",
+  CONNECTED: "Connected",
+  RETURNED: "Returned ✓",
   OWNER_INTERESTED: "Owner Interested",
 };
 

@@ -1,4 +1,4 @@
-import type { FoundItem, LostItem, Match, Notification, Prisma } from "@prisma/client";
+import type { Claim, Conversation, FoundItem, LostItem, Match, Notification, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -23,6 +23,160 @@ export interface MatchWithItems extends Match {
 
 export interface NotificationWithMatch extends Notification {
   match: MatchWithItems | null;
+}
+
+export interface MatchDetail extends MatchWithItems {
+  claim: Claim | null;
+  conversation: Conversation | null;
+}
+
+export interface ConversationSummary {
+  conversationId: string;
+  matchId: string;
+  otherUserId: string;
+  otherUserName: string;
+  itemImage: string;
+  itemName: string;
+  itemLocation: string;
+  lastMessage: string | null;
+  lastMessageAt: Date | null;
+  unreadCount: number;
+}
+
+/**
+ * Full detail for one match page render: the match, both items, the latest
+ * claim (if any) and the conversation (once the claim is accepted).
+ */
+export async function getMatchDetail(matchId: string): Promise<MatchDetail | null> {
+  const [matches] = await getMatchesWithItems([matchId]);
+  if (!matches) return null;
+
+  const [claim, conversation] = await Promise.all([
+    prisma.claim.findFirst({
+      where: { matchId: matches.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.conversation.findUnique({ where: { matchId: matches.id } }),
+  ]);
+
+  return { ...matches, claim, conversation };
+}
+
+/**
+ * All conversations the user is part of (as either lost owner or finder),
+ * with the other party's name and the latest message preview.
+ */
+export async function getUserConversations(userId: string): Promise<ConversationSummary[]> {
+  const [lostIds, foundIds] = await Promise.all([lostItemIdsOf(userId), foundItemIdsOf(userId)]);
+
+  const [matchesAsLost, matchesAsFound] = await Promise.all([
+    lostIds.length
+      ? prisma.match.findMany({ where: { lostItemId: { in: lostIds } } })
+      : Promise.resolve([] as Match[]),
+    foundIds.length
+      ? prisma.match.findMany({ where: { foundItemId: { in: foundIds } } })
+      : Promise.resolve([] as Match[]),
+  ]);
+
+  const matchIds = [...new Set([...matchesAsLost, ...matchesAsFound].map((m) => m.id))];
+  if (matchIds.length === 0) return [];
+
+  const conversations = await prisma.conversation.findMany({
+    where: { matchId: { in: matchIds } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (conversations.length === 0) return [];
+
+  const convByMatch = new Map(conversations.map((c) => [c.matchId, c]));
+  const involvedMatches = await getMatchesWithItems(matchIds.filter((id) => convByMatch.has(id)));
+
+  const userIds = [...new Set(involvedMatches.map((m) => [m.lostItem.userId, m.foundItem.userId]).flat())];
+  const users = await prisma.user.findMany({ where: { id: { in: userIds } } });
+  const userById = new Map(users.map((u) => [u.id, u]));
+
+  const summaries = await Promise.all(
+    conversations.map(async (c) => {
+      const match = involvedMatches.find((m) => m.id === c.matchId);
+      if (!match) return null;
+
+      const isLostOwner = match.lostItem.userId === userId;
+      const otherUser = userById.get(isLostOwner ? match.foundItem.userId : match.lostItem.userId);
+      const otherItem = isLostOwner ? match.foundItem : match.lostItem;
+
+      const [lastMessage, unreadCount] = await Promise.all([
+        prisma.message.findFirst({
+          where: { conversationId: c.id },
+          orderBy: { createdAt: "desc" },
+        }),
+        prisma.message.count({
+          where: { conversationId: c.id, senderId: { not: userId }, isRead: false },
+        }),
+      ]);
+
+      return {
+        conversationId: c.id,
+        matchId: c.matchId,
+        otherUserId: otherUser?.id ?? (isLostOwner ? match.foundItem.userId : match.lostItem.userId),
+        otherUserName: otherUser?.name ?? "Someone",
+        itemImage: otherItem.imageUrl,
+        itemName: otherItem.itemName,
+        itemLocation: otherItem.location,
+        lastMessage: lastMessage?.text ?? null,
+        lastMessageAt: lastMessage?.createdAt ?? null,
+        unreadCount,
+      } satisfies ConversationSummary;
+    }),
+  );
+
+  return summaries.filter((s): s is ConversationSummary => s !== null);
+}
+
+async function lostItemIdsOf(userId: string): Promise<string[]> {
+  const rows = await prisma.lostItem.findMany({ where: { userId }, select: { id: true } });
+  return rows.map((r) => r.id);
+}
+
+async function foundItemIdsOf(userId: string): Promise<string[]> {
+  const rows = await prisma.foundItem.findMany({ where: { userId }, select: { id: true } });
+  return rows.map((r) => r.id);
+}
+
+export interface ConversationDetail extends Conversation {
+  match: MatchWithItems;
+  otherUserId: string;
+  otherUserName: string;
+  returned: boolean;
+}
+
+/**
+ * Resolve a conversation for a specific user, enforcing that the user is one
+ * of the two participants (lost reporter or found reporter). Returns null if
+ * the user is not a participant.
+ */
+export async function getConversationForUser(
+  conversationId: string,
+  userId: string,
+): Promise<ConversationDetail | null> {
+  const conversation = await prisma.conversation.findUnique({ where: { id: conversationId } });
+  if (!conversation) return null;
+
+  const match = (await getMatchesWithItems([conversation.matchId]))[0];
+  if (!match) return null;
+
+  const isLostOwner = match.lostItem.userId === userId;
+  const isFinder = match.foundItem.userId === userId;
+  if (!isLostOwner && !isFinder) return null;
+
+  const otherUserId = isLostOwner ? match.foundItem.userId : match.lostItem.userId;
+  const other = await prisma.user.findUnique({ where: { id: otherUserId }, select: { name: true } });
+
+  return {
+    ...conversation,
+    match,
+    otherUserId,
+    otherUserName: other?.name ?? "Someone",
+    returned: match.lostItem.status === "RETURNED" || match.foundItem.status === "RETURNED",
+  };
 }
 
 /** Lost items with their matches attached (for best-match badges). */

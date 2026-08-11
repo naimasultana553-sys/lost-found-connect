@@ -7,10 +7,12 @@ import { cn } from "@/lib/utils";
 
 export interface NotificationItemData {
   id: string;
+  type: string;
   title: string;
   message: string;
   isRead: boolean;
   createdAt: string;
+  conversationId: string | null;
   match: {
     id: string;
     similarityScore: number;
@@ -125,13 +127,21 @@ export function NotificationsList({
                     <button
                       onClick={async () => {
                         if (!n.isRead) await markRead(n.id);
-                        router.push(`/matches/${match.id}`);
+                        if (n.type === "MESSAGE" && n.conversationId) {
+                          router.push(`/chat/${n.conversationId}`);
+                        } else {
+                          router.push(`/matches/${match.id}`);
+                        }
                       }}
                       disabled={busy === n.id}
                       className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-primary px-5 py-2.5 font-label-md text-label-md text-on-primary shadow-md transition-opacity hover:opacity-90 disabled:opacity-60 sm:w-auto sm:shrink-0"
                     >
                       {busy === n.id ? (
                         <Icon name="hourglass_top" className="animate-spin text-[16px]" />
+                      ) : n.type === "MESSAGE" ? (
+                        "Open Chat"
+                      ) : n.type === "CLAIM" ? (
+                        "Review Claim"
                       ) : (
                         "View Match"
                       )}

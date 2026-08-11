@@ -58,7 +58,7 @@ export default async function BrowsePage({
 
   const items = [
     ...lostItems.map((i) => toLostCardData(i, i.matches)),
-    ...foundItems.map(toFoundCardData),
+    ...foundItems.map((f) => toFoundCardData(f)),
   ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   const tabs = [

@@ -27,7 +27,7 @@ export default async function DashboardPage() {
   ]);
 
   const lost = lostItems.map((i) => toLostCardData(i, i.matches));
-  const found = foundItems.map(toFoundCardData);
+  const found = foundItems.map((f) => toFoundCardData(f));
 
   return (
     <>

@@ -14,6 +14,7 @@ export interface ItemCardData {
   createdAt: Date;
   bestMatchScore: number | null;
   bestMatchId: string | null;
+  conversationId: string | null;
 }
 
 /** Best match for a lost item (max score over its matches). */
@@ -26,7 +27,7 @@ export function bestMatchOf(matches: { id: string; similarityScore: number }[]):
   return { id: best.id, score: best.similarityScore };
 }
 
-export function toLostCardData(item: LostItem, matches: { id: string; similarityScore: number }[] = []): ItemCardData {
+export function toLostCardData(item: LostItem, matches: { id: string; similarityScore: number }[] = [], conversationId: string | null = null): ItemCardData {
   const best = bestMatchOf(matches);
   return {
     id: item.id,
@@ -41,10 +42,11 @@ export function toLostCardData(item: LostItem, matches: { id: string; similarity
     createdAt: item.createdAt,
     bestMatchScore: best?.score ?? null,
     bestMatchId: best?.id ?? null,
+    conversationId,
   };
 }
 
-export function toFoundCardData(item: FoundItem): ItemCardData {
+export function toFoundCardData(item: FoundItem, conversationId: string | null = null): ItemCardData {
   return {
     id: item.id,
     type: "found",
@@ -58,5 +60,6 @@ export function toFoundCardData(item: FoundItem): ItemCardData {
     createdAt: item.createdAt,
     bestMatchScore: null,
     bestMatchId: null,
+    conversationId,
   };
 }

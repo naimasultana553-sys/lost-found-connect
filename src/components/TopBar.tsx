@@ -31,9 +31,16 @@ export async function TopBar() {
           <span className="font-display-md text-display-md tracking-tight text-primary">FindBack</span>
         </Link>
         <Link
+          href="/chat"
+          aria-label="Messages"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-opacity hover:opacity-80"
+        >
+          <Icon name="forum" className="text-[24px]" />
+        </Link>
+        <Link
           href="/notifications"
           aria-label={`Notifications (${unreadCount} unread)`}
-          className="relative -mr-2 flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-opacity hover:opacity-80"
+          className="relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-opacity hover:opacity-80"
         >
           <Icon name="notifications" className="text-[24px]" />
           {unreadCount > 0 && (

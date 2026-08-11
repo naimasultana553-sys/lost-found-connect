@@ -36,3 +36,6 @@ prisma/*.db-journal
 
 .vercel
 .env*
+
+# design assets
+*.zip

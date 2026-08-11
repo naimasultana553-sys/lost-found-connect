@@ -19,7 +19,7 @@ export default async function HistoryPage({
   const user = await requireUser();
   const type = searchParams.type === "lost" || searchParams.type === "found" ? searchParams.type : "all";
 
-  const [lostItems, foundItems] = await Promise.all([
+  const [lostItems, foundItems, allConversations] = await Promise.all([
     lostItemsWithMatches({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
@@ -28,11 +28,28 @@ export default async function HistoryPage({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.conversation.findMany({}),
   ]);
 
+  const lostMatchIds = lostItems.flatMap((i) => i.matches.map((m) => m.id));
+  const foundMatchRows = foundItems.length
+    ? await prisma.match.findMany({
+        where: { foundItemId: { in: foundItems.map((f) => f.id) } },
+        select: { id: true, foundItemId: true },
+      })
+    : [];
+  const foundMatchIds = foundMatchRows.map((m) => m.id);
+
+  const convByMatch = new Map(allConversations.map((c) => [c.matchId, c.id]));
+  const foundConvByItem = new Map(
+    foundMatchRows.map((m) => [m.foundItemId, convByMatch.get(m.id)]),
+  );
+
   const items = [
-    ...lostItems.map((i) => toLostCardData(i, i.matches)),
-    ...foundItems.map(toFoundCardData),
+    ...lostItems.map((i) =>
+      toLostCardData(i, i.matches, i.matches.map((m) => convByMatch.get(m.id)).find(Boolean) ?? null),
+    ),
+    ...foundItems.map((f) => toFoundCardData(f, foundConvByItem.get(f.id) ?? null)),
   ]
     .filter((i) => (type === "all" ? true : i.type === type))
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());

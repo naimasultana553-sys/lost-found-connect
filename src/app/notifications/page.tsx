@@ -19,10 +19,12 @@ export default async function NotificationsPage() {
 
   const items: NotificationItemData[] = notifications.map((n) => ({
     id: n.id,
+    type: n.type,
     title: n.title,
     message: n.message,
     isRead: n.isRead,
     createdAt: timeAgo(n.createdAt),
+    conversationId: n.conversationId ?? null,
     match: n.match
       ? {
           id: n.match.id,
@@ -43,7 +45,7 @@ export default async function NotificationsPage() {
         <div className="mb-6">
           <h1 className="font-display-lg text-display-lg text-on-surface">Alerts</h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
-            Updates about possible matches for your lost items.
+            Updates about possible matches, claims and messages.
           </p>
         </div>
 

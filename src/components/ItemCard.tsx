@@ -20,17 +20,23 @@ function TypeBadge({ type, className }: { type: "lost" | "found"; className?: st
 }
 
 export function ItemCard({ item }: { item: ItemCardData }) {
-  const possibleMatch = item.bestMatchScore !== null;
   const isLost = item.type === "lost";
+  const returned = item.status === "RETURNED";
+  const connected = item.status === "CONNECTED";
+  const possibleMatch = item.bestMatchScore !== null;
   const searching = isLost && !possibleMatch && item.status === "SEARCHING";
 
-  const status = isLost
-    ? possibleMatch
-      ? { icon: "check_circle", label: `Possible Match · ${item.bestMatchScore}%`, tone: "secondary" as const }
-      : { icon: "radar", label: "Searching...", tone: "plain" as const }
-    : item.status === "POSSIBLE_MATCH"
-      ? { icon: "check_circle", label: "Possible Match!", tone: "secondary" as const }
-      : { icon: "inventory_2", label: "Available", tone: "plain" as const };
+  const status = returned
+    ? { icon: "task_alt", label: "Returned ✓", tone: "success" as const }
+    : connected
+      ? { icon: "chat_bubble", label: "Connected", tone: "secondary" as const }
+      : isLost
+        ? possibleMatch
+          ? { icon: "check_circle", label: `Possible Match · ${item.bestMatchScore}%`, tone: "secondary" as const }
+          : { icon: "radar", label: "Searching...", tone: "plain" as const }
+        : item.status === "POSSIBLE_MATCH"
+          ? { icon: "check_circle", label: "Possible Match!", tone: "secondary" as const }
+          : { icon: "inventory_2", label: "Available", tone: "plain" as const };
 
   return (
     <article className="relative overflow-hidden rounded-[24px] border border-surface-variant/50 bg-surface-container-lowest shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift">
@@ -63,7 +69,9 @@ export function ItemCard({ item }: { item: ItemCardData }) {
               "flex items-center gap-2 font-label-md text-label-md",
               status.tone === "secondary"
                 ? "rounded-full bg-secondary-container px-3 py-1 text-secondary"
-                : "text-primary",
+                : status.tone === "success"
+                  ? "rounded-full bg-secondary-container px-3 py-1 text-secondary"
+                  : "text-primary",
             )}
           >
             <Icon
@@ -73,7 +81,15 @@ export function ItemCard({ item }: { item: ItemCardData }) {
             {status.label}
           </span>
 
-          {possibleMatch && item.bestMatchId ? (
+          {connected && item.conversationId ? (
+            <Link
+              href={`/chat/${item.conversationId}`}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 font-label-md text-label-md text-on-primary shadow-md transition-opacity hover:opacity-90"
+            >
+              <Icon name="chat_bubble" className="text-[18px]" />
+              Open Chat
+            </Link>
+          ) : possibleMatch && item.bestMatchId ? (
             <Link
               href={`/matches/${item.bestMatchId}`}
               className="rounded-full px-4 py-2 font-label-md text-label-md text-primary transition-colors hover:bg-primary-container/10"
