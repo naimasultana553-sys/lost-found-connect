@@ -23,3 +23,19 @@ export const MATCHING_CONFIG = {
   /** Maximum number of possible matches returned per report. */
   maxResults: 5,
 } as const;
+
+/**
+ * AI vision-model settings for image similarity (Gemini).
+ * Requires a GEMINI_API_KEY env var; without one the app falls back to the
+ * free local perceptual hash (dHash) matcher.
+ */
+export const IMAGE_AI = {
+  /** Gemini model used to compare photos. */
+  model: process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite",
+
+  /** Total candidate photos considered per report (capped). */
+  maxCandidates: 30,
+
+  /** Photos sent per Gemini request (keeps each request well under size limits). */
+  chunkSize: 8,
+} as const;

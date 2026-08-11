@@ -11,7 +11,7 @@
  */
 import sharp from "sharp";
 import path from "path";
-import { access, readFile } from "fs/promises";
+import { readFile } from "fs/promises";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -19,13 +19,8 @@ import { prisma } from "@/lib/prisma";
  * Returns null when the file is missing or not a decodable image.
  */
 export async function computeImageHash(filePath: string): Promise<string | null> {
-  try {
-    await access(filePath);
-  } catch {
-    return null;
-  }
-
-  return computeImageHashFromBuffer(await readFile(filePath));
+  const buffer = await readFile(filePath).catch(() => null);
+  return buffer ? computeImageHashFromBuffer(buffer) : null;
 }
 
 /** Compute the 64-bit dHash of raw image bytes. Returns null when undecodable. */
@@ -52,23 +47,37 @@ export async function computeImageHashFromBuffer(buffer: Buffer): Promise<string
 }
 
 /**
- * Compute the dHash for any stored image URL. URLs of DB-stored images
- * (/api/image/<id>) are read from the database; local URLs
- * (e.g. /uploads/...) are read from disk.
+ * Read the raw bytes of a stored image. Handles DB-stored images
+ * (/api/image/<id>), absolute URLs, and legacy local disk paths.
+ * Returns null when the image can't be read.
  */
-export async function computeImageHashFromUrl(imageUrl: string): Promise<string | null> {
+export async function readImageBufferFromUrl(imageUrl: string): Promise<Buffer | null> {
   try {
     if (imageUrl.startsWith("/api/image/")) {
       const image = await prisma.image.findUnique({
         where: { id: imageUrl.slice("/api/image/".length) },
       });
-      if (!image) return null;
-      return computeImageHashFromBuffer(image.data);
+      return image ? image.data : null;
     }
-    return computeImageHash(resolveImagePath(imageUrl));
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      const res = await fetch(imageUrl);
+      if (!res.ok) return null;
+      return Buffer.from(await res.arrayBuffer());
+    }
+    return await readFile(resolveImagePath(imageUrl)).catch(() => null);
   } catch {
     return null;
   }
+}
+
+/**
+ * Compute the dHash for any stored image URL. URLs of DB-stored images
+ * (/api/image/<id>) are read from the database; local URLs
+ * (e.g. /uploads/...) are read from disk.
+ */
+export async function computeImageHashFromUrl(imageUrl: string): Promise<string | null> {
+  const buffer = await readImageBufferFromUrl(imageUrl);
+  return buffer ? computeImageHashFromBuffer(buffer) : null;
 }
 
 /** Resolve a public URL (e.g. "/uploads/x/a.png") to an absolute file path. */

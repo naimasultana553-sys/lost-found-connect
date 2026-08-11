@@ -6,24 +6,30 @@
  *
  * When a report is created the service runs the comparison against items of
  * the opposite type, persists Match records and creates in-app
- * notifications for the owner of each lost item. The initial implementation
- * uses perceptual image hashing plus name/category/location/date heuristics;
- * the interface is stable so a real AI/embedding model can be dropped in
- * without changing callers.
+ * notifications for the owner of each lost item. Image similarity uses the
+ * Gemini vision model (AI) with a free local perceptual-hash (dHash) fallback
+ * when the API is not configured or fails; name/category/location/date
+ * heuristics are computed locally. The interface is stable so a different
+ * model can be dropped in without changing callers.
  */
 import type { LostItem, FoundItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getMatchesWithItems } from "@/lib/queries";
 import { MATCHING_CONFIG } from "@/matching/config";
+import { getGeminiImageScores } from "@/matching/gemini";
 import { computeMatchScore, type ScoreBreakdown } from "@/matching/score";
 
 export interface PossibleMatchResult {
   matchId: string;
   itemId: string; // the id of the opposite-type item
   similarityScore: number;
+  imageScore: number | null;
 }
 
 interface CandidateInput {
+  id: string;
+  userId: string;
+  imageUrl: string;
   imageHash: string | null;
   name: string;
   category: string;
@@ -31,19 +37,38 @@ interface CandidateInput {
   date: Date;
 }
 
-interface MatchRef {
-  id: string;
-  userId: string;
-  itemName: string;
+function lostInput(item: LostItem): CandidateInput {
+  return {
+    id: item.id,
+    userId: item.userId,
+    imageUrl: item.imageUrl,
+    imageHash: item.imageHash,
+    name: item.itemName,
+    category: item.category,
+    location: item.location,
+    date: item.dateLost,
+  };
 }
 
-/** Shared scoring for one candidate pair. */
-function scorePair(
-  lost: CandidateInput & { id: string; userId: string },
-  found: CandidateInput & { id: string; userId: string },
-): number {
+function foundInput(item: FoundItem): CandidateInput {
+  return {
+    id: item.id,
+    userId: item.userId,
+    imageUrl: item.imageUrl,
+    imageHash: item.imageHash,
+    name: item.itemName,
+    category: item.category,
+    location: item.location,
+    date: item.dateFound,
+  };
+}
+
+/** Shared scoring for one candidate pair. `imageScore` is the AI-provided
+ * image similarity (0-100); null falls back to dHash. */
+function scorePair(lost: CandidateInput, found: CandidateInput, imageScore: number | null): number {
   if (lost.userId === found.userId) return 0; // never match a user against themselves
   return computeMatchScore({
+    imageScore,
     imageHashA: lost.imageHash,
     imageHashB: found.imageHash,
     nameA: lost.name,
@@ -66,14 +91,20 @@ export async function findMatchesForLostItem(lost: LostItem) {
     where: { status: { not: "RETURNED" } },
   });
 
-  const candidates: { foundItemId: string; similarityScore: number }[] = [];
-  for (const found of foundItems) {
-    const score = scorePair(
-      { id: lost.id, userId: lost.userId, imageHash: lost.imageHash, name: lost.itemName, category: lost.category, location: lost.location, date: lost.dateLost },
-      { id: found.id, userId: found.userId, imageHash: found.imageHash, name: found.itemName, category: found.category, location: found.location, date: found.dateFound },
-    );
+  const opponents = foundItems.filter((f) => f.userId !== lost.userId);
+
+  // AI image similarity for every candidate (one batched Gemini flow).
+  const imageScores = await getGeminiImageScores(
+    lost.imageUrl,
+    opponents.map((f) => ({ itemId: f.id, imageUrl: f.imageUrl })),
+  );
+
+  const candidates: { foundItemId: string; similarityScore: number; imageScore: number | null }[] = [];
+  for (const found of opponents) {
+    const imageScore = imageScores.get(found.id) ?? null;
+    const score = scorePair(lostInput(lost), foundInput(found), imageScore);
     if (score >= MATCHING_CONFIG.matchThreshold) {
-      candidates.push({ foundItemId: found.id, similarityScore: score });
+      candidates.push({ foundItemId: found.id, similarityScore: score, imageScore });
     }
   }
 
@@ -91,14 +122,19 @@ export async function findMatchesForFoundItem(found: FoundItem) {
     where: { status: { not: "RETURNED" } },
   });
 
-  const candidates: { lostItemId: string; similarityScore: number }[] = [];
-  for (const lost of lostItems) {
-    const score = scorePair(
-      { id: lost.id, userId: lost.userId, imageHash: lost.imageHash, name: lost.itemName, category: lost.category, location: lost.location, date: lost.dateLost },
-      { id: found.id, userId: found.userId, imageHash: found.imageHash, name: found.itemName, category: found.category, location: found.location, date: found.dateFound },
-    );
+  const opponents = lostItems.filter((l) => l.userId !== found.userId);
+
+  const imageScores = await getGeminiImageScores(
+    found.imageUrl,
+    opponents.map((l) => ({ itemId: l.id, imageUrl: l.imageUrl })),
+  );
+
+  const candidates: { lostItemId: string; similarityScore: number; imageScore: number | null }[] = [];
+  for (const lost of opponents) {
+    const imageScore = imageScores.get(lost.id) ?? null;
+    const score = scorePair(lostInput(lost), foundInput(found), imageScore);
     if (score >= MATCHING_CONFIG.matchThreshold) {
-      candidates.push({ lostItemId: lost.id, similarityScore: score });
+      candidates.push({ lostItemId: lost.id, similarityScore: score, imageScore });
     }
   }
 
@@ -126,7 +162,12 @@ export async function processLostItemMatches(lost: LostItem): Promise<PossibleMa
     });
 
     if (existing) {
-      results.push({ matchId: existing.id, itemId: candidate.foundItemId, similarityScore: candidate.similarityScore });
+      results.push({
+        matchId: existing.id,
+        itemId: candidate.foundItemId,
+        similarityScore: candidate.similarityScore,
+        imageScore: candidate.imageScore,
+      });
       continue;
     }
 
@@ -135,12 +176,18 @@ export async function processLostItemMatches(lost: LostItem): Promise<PossibleMa
         lostItemId: lost.id,
         foundItemId: candidate.foundItemId,
         similarityScore: candidate.similarityScore,
+        imageScore: candidate.imageScore,
       },
     });
 
     await notifyLostOwner(match.id, lost);
 
-    results.push({ matchId: match.id, itemId: candidate.foundItemId, similarityScore: candidate.similarityScore });
+    results.push({
+      matchId: match.id,
+      itemId: candidate.foundItemId,
+      similarityScore: candidate.similarityScore,
+      imageScore: candidate.imageScore,
+    });
   }
 
   if (results.length > 0) {
@@ -176,7 +223,12 @@ export async function processFoundItemMatches(found: FoundItem): Promise<Possibl
     });
 
     if (existing) {
-      results.push({ matchId: existing.id, itemId: candidate.lostItemId, similarityScore: candidate.similarityScore });
+      results.push({
+        matchId: existing.id,
+        itemId: candidate.lostItemId,
+        similarityScore: candidate.similarityScore,
+        imageScore: candidate.imageScore,
+      });
       continue;
     }
 
@@ -185,6 +237,7 @@ export async function processFoundItemMatches(found: FoundItem): Promise<Possibl
         lostItemId: lost.id,
         foundItemId: found.id,
         similarityScore: candidate.similarityScore,
+        imageScore: candidate.imageScore,
       },
     });
 
@@ -195,13 +248,18 @@ export async function processFoundItemMatches(found: FoundItem): Promise<Possibl
       data: { status: "POSSIBLE_MATCH" },
     });
 
-    results.push({ matchId: match.id, itemId: candidate.lostItemId, similarityScore: candidate.similarityScore });
+    results.push({
+      matchId: match.id,
+      itemId: candidate.lostItemId,
+      similarityScore: candidate.similarityScore,
+      imageScore: candidate.imageScore,
+    });
   }
 
   return results;
 }
 
-async function notifyLostOwner(matchId: string, lost: MatchRef) {
+async function notifyLostOwner(matchId: string, lost: LostItem) {
   await prisma.notification.create({
     data: {
       userId: lost.userId,
@@ -218,6 +276,7 @@ export async function getMatchBreakdown(matchId: string): Promise<ScoreBreakdown
   if (!match) return null;
 
   return computeMatchScore({
+    imageScore: match.imageScore,
     imageHashA: match.lostItem.imageHash,
     imageHashB: match.foundItem.imageHash,
     nameA: match.lostItem.itemName,

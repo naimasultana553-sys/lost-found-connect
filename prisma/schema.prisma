@@ -75,6 +75,7 @@ model Match {
   lostItemId      String   @db.ObjectId
   foundItemId     String   @db.ObjectId
   similarityScore Int // 0-99 combined score (image + text + location + date)
+  imageScore      Int? // 0-100 AI (Gemini) image similarity at match time; null = dHash fallback
   status          String   @default("POSSIBLE") // POSSIBLE | OWNER_INTERESTED
   createdAt       DateTime @default(now())
 

@@ -16,6 +16,8 @@ import { dateSimilarity } from "@/matching/dateMatcher";
 export interface ScoreInput {
   imageHashA: string | null;
   imageHashB: string | null;
+  /** Optional AI-provided image similarity (0-100). Falls back to dHash when null. */
+  imageScore?: number | null;
   nameA: string;
   nameB: string;
   categoryA: string;
@@ -37,7 +39,10 @@ export interface ScoreBreakdown {
 
 export function computeMatchScore(input: ScoreInput): ScoreBreakdown {
   const parts = {
-    image: imageSimilarity(input.imageHashA, input.imageHashB),
+    image:
+      input.imageScore != null
+        ? input.imageScore
+        : imageSimilarity(input.imageHashA, input.imageHashB),
     name: textSimilarity(input.nameA, input.nameB),
     category: categorySimilarity(input.categoryA, input.categoryB),
     location: locationSimilarity(input.locationA, input.locationB),
