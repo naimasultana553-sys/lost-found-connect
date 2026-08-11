@@ -30,8 +30,12 @@ export const MATCHING_CONFIG = {
  * free local perceptual hash (dHash) matcher.
  */
 export const IMAGE_AI = {
-  /** Gemini model used to compare photos. */
-  model: process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite",
+  /**
+   * Gemini model used to compare photos.
+   * Note: flash-lite has a position bias (scores later photos in a batch
+   * incorrectly), so we use the full flash model for reliable batch scoring.
+   */
+  model: process.env.GEMINI_MODEL ?? "gemini-3.5-flash",
 
   /** Total candidate photos considered per report (capped). */
   maxCandidates: 30,
