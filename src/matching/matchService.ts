@@ -145,13 +145,17 @@ export async function findMatchesForFoundItem(found: FoundItem) {
 
 /**
  * Persist matches + notifications for a newly reported lost item, and update
- * the lost item status to POSSIBLE_MATCH when a match exists.
+ * the lost item status to POSSIBLE_MATCH when a match exists. Both the lost
+ * owner (reporter) and each matched found item's owner are notified.
  */
 export async function processLostItemMatches(lost: LostItem): Promise<PossibleMatchResult[]> {
   const candidates = await findMatchesForLostItem(lost);
   const results: PossibleMatchResult[] = [];
 
   for (const candidate of candidates) {
+    const found = await prisma.foundItem.findUnique({ where: { id: candidate.foundItemId } });
+    if (!found) continue;
+
     const existing = await prisma.match.findUnique({
       where: {
         lostItemId_foundItemId: {
@@ -181,6 +185,7 @@ export async function processLostItemMatches(lost: LostItem): Promise<PossibleMa
     });
 
     await notifyLostOwner(match.id, lost);
+    await notifyFoundOwner(match.id, found);
 
     results.push({
       matchId: match.id,
@@ -201,9 +206,9 @@ export async function processLostItemMatches(lost: LostItem): Promise<PossibleMa
 }
 
 /**
- * Persist matches + notifications for a newly reported found item. Each
- * affected lost item's owner is notified, and the lost item status becomes
- * POSSIBLE_MATCH.
+ * Persist matches + notifications for a newly reported found item. Both the
+ * found owner (reporter) and each matched lost item's owner are notified, and
+ * the lost item status becomes POSSIBLE_MATCH.
  */
 export async function processFoundItemMatches(found: FoundItem): Promise<PossibleMatchResult[]> {
   const candidates = await findMatchesForFoundItem(found);
@@ -242,6 +247,7 @@ export async function processFoundItemMatches(found: FoundItem): Promise<Possibl
     });
 
     await notifyLostOwner(match.id, lost);
+    await notifyFoundOwner(match.id, found);
 
     await prisma.lostItem.update({
       where: { id: lost.id },
@@ -266,6 +272,17 @@ async function notifyLostOwner(matchId: string, lost: LostItem) {
       matchId,
       title: "Possible Match Found",
       message: `A found item looks similar to your lost ${lost.itemName}.`,
+    },
+  });
+}
+
+async function notifyFoundOwner(matchId: string, found: FoundItem) {
+  await prisma.notification.create({
+    data: {
+      userId: found.userId,
+      matchId,
+      title: "Possible Match Found",
+      message: `A lost item looks similar to the found ${found.itemName} you reported.`,
     },
   });
 }
