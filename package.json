@@ -5,7 +5,7 @@
   "description": "FindBack — report lost and found items, match them by image, notify owners.",
   "scripts": {
     "dev": "node node_modules/next/dist/bin/next dev",
-    "build": "node node_modules/prisma/build/index.js generate && node node_modules/next/dist/bin/next build",
+    "build": "node node_modules/prisma/build/index.js generate && node node_modules/prisma/build/index.js db push && node node_modules/next/dist/bin/next build",
     "start": "node node_modules/next/dist/bin/next start",
     "lint": "node node_modules/next/dist/bin/next lint",
     "typecheck": "node node_modules/typescript/bin/tsc --noEmit",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { notificationsWithMatches } from "@/lib/queries";
 import { timeAgo } from "@/lib/utils";
 import { NotificationsList, type NotificationItemData } from "@/components/NotificationsList";
 
@@ -11,15 +12,7 @@ export default async function NotificationsPage() {
   const user = await requireUser();
 
   const [notifications, unreadCount] = await Promise.all([
-    prisma.notification.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      include: {
-        match: {
-          include: { lostItem: true, foundItem: true },
-        },
-      },
-    }),
+    notificationsWithMatches(user.id),
     prisma.notification.count({ where: { userId: user.id, isRead: false } }),
   ]);
 

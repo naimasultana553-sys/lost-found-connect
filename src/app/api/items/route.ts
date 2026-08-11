@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/auth";
+import { lostItemsWithMatches } from "@/lib/queries";
 import { createItemSchema } from "@/lib/validators";
 import { computeImageHashFromUrl } from "@/matching/imageMatcher";
 import { computeMatchScore } from "@/matching/score";
@@ -198,14 +199,13 @@ export async function GET(req: NextRequest) {
   };
 
   const [lostItems, foundItems] = await Promise.all([
-    prisma.lostItem.findMany({
+    lostItemsWithMatches({
       where: {
         ...(type === "lost" ? where.AND[0] : {}),
         ...(q ? where.AND[1] : {}),
         ...(category ? { category } : {}),
         status: { not: "RETURNED" },
       },
-      include: { matches: true },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),

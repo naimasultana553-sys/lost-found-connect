@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, SearchX, PackageSearch } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { lostItemsWithMatches } from "@/lib/queries";
 import { ItemCard } from "@/components/ItemCard";
 import { toFoundCardData, toLostCardData } from "@/lib/types";
 
@@ -8,8 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [recentLost, recentFound] = await Promise.all([
-    prisma.lostItem.findMany({
-      include: { matches: true },
+    lostItemsWithMatches({
       orderBy: { createdAt: "desc" },
       take: 3,
     }),

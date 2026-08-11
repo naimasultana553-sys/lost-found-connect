@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, CalendarDays, Target, ShieldAlert } from "lucide-react";
-import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { getMatchesWithItems } from "@/lib/queries";
 import { getMatchBreakdown } from "@/matching/matchService";
 import { LostFoundBadge } from "@/components/LostFoundBadge";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -18,10 +18,7 @@ function similarLabel(score: number) {
 export default async function MatchDetailPage({ params }: { params: { id: string } }) {
   const user = await requireUser();
 
-  const match = await prisma.match.findUnique({
-    where: { id: params.id },
-    include: { lostItem: true, foundItem: true },
-  });
+  const [match] = await getMatchesWithItems([params.id]);
 
   if (!match) notFound();
   if (match.lostItem.userId !== user.id) {

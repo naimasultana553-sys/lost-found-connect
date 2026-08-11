@@ -1,21 +1,25 @@
-// FindBack — Prisma schema (SQLite)
+// FindBack — Prisma schema (MongoDB)
 //
 // Keep models modular so V2/V3 features (chat, ratings, admin, advanced
 // matching) can be added without restructuring. `imageHash` stores a
 // perceptual hash (dHash) computed at report time; it is the primary
 // image-matching signal and is not part of the public data model spec.
+//
+// Note: Prisma's MongoDB connector has no relation support, so references
+// between collections (userId, lostItemId, foundItemId, matchId) are plain
+// ObjectId strings joined manually in the query layer (see src/lib/queries.ts).
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
 model Image {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   data      Bytes
   mimeType  String   @default("image/jpeg")
   createdAt DateTime @default(now())
@@ -24,23 +28,18 @@ model Image {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  name          String
-  email         String         @unique
-  passwordHash  String
-  createdAt     DateTime       @default(now())
-
-  lostItems     LostItem[]
-  foundItems    FoundItem[]
-  notifications Notification[]
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
 
   @@map("users")
 }
 
 model LostItem {
-  id          String     @id @default(cuid())
-  userId      String
-  user        User       @relation(fields: [userId], references: [id])
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
   imageUrl    String
   imageHash   String?
   itemName    String
@@ -48,18 +47,15 @@ model LostItem {
   description String?
   location    String
   dateLost    DateTime
-  status      String     @default("SEARCHING")
-  createdAt   DateTime   @default(now())
-
-  matches     Match[]
+  status      String   @default("SEARCHING")
+  createdAt   DateTime @default(now())
 
   @@map("lost_items")
 }
 
 model FoundItem {
-  id          String     @id @default(cuid())
-  userId      String
-  user        User       @relation(fields: [userId], references: [id])
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
   imageUrl    String
   imageHash   String?
   itemName    String
@@ -67,37 +63,29 @@ model FoundItem {
   description String?
   location    String
   dateFound   DateTime
-  status      String     @default("AVAILABLE")
-  createdAt   DateTime   @default(now())
-
-  matches     Match[]
+  status      String   @default("AVAILABLE")
+  createdAt   DateTime @default(now())
 
   @@map("found_items")
 }
 
 // A "possible match" — never a confirmed match. The system only suggests.
 model Match {
-  id              String       @id @default(cuid())
-  lostItemId      String
-  foundItemId     String
-  lostItem        LostItem     @relation(fields: [lostItemId], references: [id], onDelete: Cascade)
-  foundItem       FoundItem    @relation(fields: [foundItemId], references: [id], onDelete: Cascade)
-  similarityScore Int          // 0-99 combined score (image + text + location + date)
-  status          String       @default("POSSIBLE") // POSSIBLE | OWNER_INTERESTED
-  createdAt       DateTime     @default(now())
-
-  notifications   Notification[]
+  id              String   @id @default(auto()) @map("_id") @db.ObjectId
+  lostItemId      String   @db.ObjectId
+  foundItemId     String   @db.ObjectId
+  similarityScore Int // 0-99 combined score (image + text + location + date)
+  status          String   @default("POSSIBLE") // POSSIBLE | OWNER_INTERESTED
+  createdAt       DateTime @default(now())
 
   @@unique([lostItemId, foundItemId])
   @@map("matches")
 }
 
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  matchId   String?
-  match     Match?   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  matchId   String?  @db.ObjectId
   title     String
   message   String
   isRead    Boolean  @default(false)

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bell, CircleHelp, PackageCheck, ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { lostItemsWithMatches } from "@/lib/queries";
 import { ItemCard } from "@/components/ItemCard";
 import { EmptyState } from "@/components/EmptyState";
 import { toFoundCardData, toLostCardData } from "@/lib/types";
@@ -13,9 +14,8 @@ export default async function DashboardPage() {
   const user = await requireUser();
 
   const [lostItems, foundItems, unreadCount] = await Promise.all([
-    prisma.lostItem.findMany({
+    lostItemsWithMatches({
       where: { userId: user.id },
-      include: { matches: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.foundItem.findMany({

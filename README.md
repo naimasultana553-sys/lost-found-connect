@@ -9,7 +9,7 @@ FindBack is a web application that connects people who **lost** items with peopl
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js%2014-000000?style=for-the-badge&logo=next.js&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
-![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 
@@ -111,7 +111,7 @@ FindBack is built to help close that gap.
 | ---------------- | -------------------------------------------------------------- |
 | Frontend         | Next.js 14 (App Router) · React 18 · Tailwind CSS              |
 | Backend          | Next.js Route Handlers (REST API)                              |
-| Database         | SQLite via Prisma ORM                                          |
+| Database         | MongoDB (Atlas) via Prisma ORM                                       |
 | Auth             | iron-session (encrypted httpOnly cookie) + bcrypt              |
 | Image matching   | Perceptual hashing (dHash) via **sharp** + scoring heuristics  |
 
@@ -154,6 +154,9 @@ npm install
 Create a `.env` file in the project root (it is git-ignored):
 
 ```env
+# MongoDB Atlas connection string (free M0 cluster — https://www.mongodb.com/atlas)
+DATABASE_URL=mongodb+srv://USER:PASSWORD@CLUSTER.mongodb.net/findback?retryWrites=true&w=majority
+
 # Any long, random string — used to encrypt session cookies
 SESSION_SECRET=generate-a-long-random-string-here
 ```
@@ -163,7 +166,7 @@ SESSION_SECRET=generate-a-long-random-string-here
 ### 3. Set up the database
 
 ```bash
-npm run db:push   # creates prisma/dev.db from the schema
+npm run db:push   # creates the collections in MongoDB Atlas from the schema
 ```
 
 ### 4. Run it

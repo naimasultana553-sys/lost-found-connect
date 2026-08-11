@@ -13,6 +13,7 @@
  */
 import type { LostItem, FoundItem } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getMatchesWithItems } from "@/lib/queries";
 import { MATCHING_CONFIG } from "@/matching/config";
 import { computeMatchScore, type ScoreBreakdown } from "@/matching/score";
 
@@ -213,10 +214,7 @@ async function notifyLostOwner(matchId: string, lost: MatchRef) {
 
 /** Recompute the score breakdown for display on the match details page. */
 export async function getMatchBreakdown(matchId: string): Promise<ScoreBreakdown | null> {
-  const match = await prisma.match.findUnique({
-    where: { id: matchId },
-    include: { lostItem: true, foundItem: true },
-  });
+  const [match] = await getMatchesWithItems([matchId]);
   if (!match) return null;
 
   return computeMatchScore({

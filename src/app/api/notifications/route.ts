@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/auth";
+import { notificationsWithMatches } from "@/lib/queries";
 
 /**
  * GET /api/notifications
@@ -13,18 +14,7 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: "You must be logged in." }, { status: 401 });
   }
 
-  const notifications = await prisma.notification.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-    include: {
-      match: {
-        include: {
-          lostItem: true,
-          foundItem: true,
-        },
-      },
-    },
-  });
+  const notifications = await notificationsWithMatches(user.id);
 
   const unreadCount = await prisma.notification.count({
     where: { userId: user.id, isRead: false },

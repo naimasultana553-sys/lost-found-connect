@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { lostItemsWithMatches } from "@/lib/queries";
 import { ItemCard } from "@/components/ItemCard";
 import { EmptyState } from "@/components/EmptyState";
 import { CATEGORIES } from "@/lib/categories";
@@ -30,13 +31,12 @@ export default async function BrowsePage({
     : {};
 
   const [lostItems, foundItems] = await Promise.all([
-    prisma.lostItem.findMany({
+    lostItemsWithMatches({
       where: {
         status: { not: "RETURNED" },
         ...(type === "lost" || type === "all" ? textFilter : { id: "none" }),
         ...(category ? { category } : {}),
       },
-      include: { matches: true },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),

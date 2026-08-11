@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireApiUser } from "@/lib/auth";
+import { getMatchesWithItems } from "@/lib/queries";
 
 /**
  * POST /api/matches/[id]/interest
@@ -17,10 +18,7 @@ export async function POST(
     return NextResponse.json({ error: "You must be logged in." }, { status: 401 });
   }
 
-  const match = await prisma.match.findUnique({
-    where: { id: params.id },
-    include: { lostItem: true, foundItem: true },
-  });
+  const [match] = await getMatchesWithItems([params.id]);
 
   if (!match) {
     return NextResponse.json({ error: "Match not found." }, { status: 404 });
@@ -32,20 +30,20 @@ export async function POST(
     return NextResponse.json({ error: "This item has already been returned." }, { status: 400 });
   }
 
-  await prisma.$transaction([
-    prisma.match.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.match.update({
       where: { id: match.id },
       data: { status: "OWNER_INTERESTED" },
-    }),
-    prisma.lostItem.update({
+    });
+    await tx.lostItem.update({
       where: { id: match.lostItemId },
       data: { status: "MATCHED" },
-    }),
-    prisma.foundItem.update({
+    });
+    await tx.foundItem.update({
       where: { id: match.foundItemId },
       data: { status: "MATCHED" },
-    }),
-  ]);
+    });
+  });
 
   return NextResponse.json({ ok: true, status: "OWNER_INTERESTED" });
 }

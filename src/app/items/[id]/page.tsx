@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, CalendarDays, Package } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import type { FoundItem, LostItem, Match } from "@prisma/client";
 import { LostFoundBadge } from "@/components/LostFoundBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ScorePill } from "@/components/ScorePill";
@@ -9,20 +10,43 @@ import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+type LostItemWithRelations = LostItem & {
+  user: { name: string };
+  matches: (Match & { foundItem: FoundItem })[];
+};
+
+type FoundItemWithRelations = FoundItem & {
+  user: { name: string };
+};
+
 export default async function ItemDetailPage({ params }: { params: { id: string } }) {
-  const [lostItem, foundItem] = await Promise.all([
-    prisma.lostItem.findUnique({
-      where: { id: params.id },
-      include: {
-        user: { select: { name: true } },
-        matches: { include: { foundItem: true } },
-      },
-    }),
-    prisma.foundItem.findUnique({
-      where: { id: params.id },
-      include: { user: { select: { name: true } } },
-    }),
+  const [lostRow, foundRow] = await Promise.all([
+    prisma.lostItem.findUnique({ where: { id: params.id } }),
+    prisma.foundItem.findUnique({ where: { id: params.id } }),
   ]);
+
+  let lostItem: LostItemWithRelations | null = null;
+  if (lostRow) {
+    const [user, matchRows] = await Promise.all([
+      prisma.user.findUnique({ where: { id: lostRow.userId }, select: { name: true } }),
+      prisma.match.findMany({ where: { lostItemId: lostRow.id } }),
+    ]);
+    const foundItems = matchRows.length
+      ? await prisma.foundItem.findMany({ where: { id: { in: matchRows.map((m) => m.foundItemId) } } })
+      : [];
+    const foundById = new Map(foundItems.map((f) => [f.id, f]));
+    lostItem = {
+      ...lostRow,
+      user: { name: user?.name ?? "Someone" },
+      matches: matchRows.map((m) => ({ ...m, foundItem: foundById.get(m.foundItemId) as FoundItem })),
+    };
+  }
+
+  let foundItem: FoundItemWithRelations | null = null;
+  if (foundRow) {
+    const user = await prisma.user.findUnique({ where: { id: foundRow.userId }, select: { name: true } });
+    foundItem = { ...foundRow, user: { name: user?.name ?? "Someone" } };
+  }
 
   const item = lostItem ?? foundItem;
   if (!item) notFound();
