@@ -32,24 +32,28 @@ export default async function BrowsePage({
     : {};
 
   const [lostItems, foundItems] = await Promise.all([
-    lostItemsWithMatches({
-      where: {
-        status: { not: "RETURNED" },
-        ...(type === "lost" || type === "all" ? textFilter : { id: "none" }),
-        ...(category ? { category } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
-    prisma.foundItem.findMany({
-      where: {
-        status: { not: "RETURNED" },
-        ...(type === "found" || type === "all" ? textFilter : { id: "none" }),
-        ...(category ? { category } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
+    type === "found"
+      ? Promise.resolve([])
+      : lostItemsWithMatches({
+          where: {
+            status: { not: "RETURNED" },
+            ...textFilter,
+            ...(category ? { category } : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        }),
+    type === "lost"
+      ? Promise.resolve([])
+      : prisma.foundItem.findMany({
+          where: {
+            status: { not: "RETURNED" },
+            ...textFilter,
+            ...(category ? { category } : {}),
+          },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        }),
   ]);
 
   const items = [
