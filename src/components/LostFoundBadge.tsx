@@ -5,8 +5,8 @@ export function LostFoundBadge({ type, className }: { type: "lost" | "found"; cl
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold uppercase tracking-wide",
-        isLost ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700",
+        "inline-flex items-center rounded-full px-3 py-1 text-[12px] font-bold uppercase tracking-wider text-on-error",
+        isLost ? "bg-error/90" : "bg-primary/90 text-on-primary",
         className,
       )}
     >

@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { Nunito_Sans } from "next/font/google";
+import { BottomNav } from "@/components/BottomNav";
 import "./globals.css";
 
-const inter = Inter({
+const nunito = Nunito_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["400", "600", "700", "800"],
+  variable: "--font-nunito",
   display: "swap",
 });
 
@@ -23,11 +23,26 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="flex min-h-screen flex-col">
-        <Navbar />
+    <html lang="en" className={nunito.variable}>
+      <head>
+        <link
+          rel="preconnect"
+          href="https://fonts.googleapis.com"
+        />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body className="flex min-h-screen flex-col bg-surface">
         <main className="flex-1">{children}</main>
-        <Footer />
+        <BottomNav />
       </body>
     </html>
   );

@@ -7,14 +7,39 @@
 }
 
 body {
-  @apply bg-[#faf8f6] font-sans text-slate-900 antialiased;
+  @apply bg-surface font-sans text-on-surface antialiased;
 }
 
 /* Consistent focus ring */
 :focus-visible {
-  @apply outline-2 outline-offset-2 outline-brand-500;
+  @apply outline-2 outline-offset-2 outline-primary;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
+}
+
+/* Material Symbols Outlined (loaded via Google Fonts link in layout) */
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined" !important;
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide horizontal scrollbar on chip/tab rows */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowRight, Loader2, Target, CircleCheck, MapPin, CalendarDays } from "lucide-react";
+import { Icon } from "@/components/Icon";
 import { ImageUploader } from "@/components/ImageUploader";
 import { CATEGORIES } from "@/lib/categories";
 import { cn, formatDate } from "@/lib/utils";
 
-type Phase = "idle" | "submitting" | "matching" | "done";
+type Phase = "idle" | "submitting" | "done";
 
 interface MatchedItem {
   id: string;
@@ -31,11 +31,8 @@ interface CreatedItem {
   itemName: string;
 }
 
-const MATCH_MESSAGES = [
-  "Analyzing image…",
-  "Comparing with reported items…",
-  "Looking for similarities…",
-];
+const pillInput =
+  "w-full rounded-full border border-secondary-fixed-dim bg-surface-bright px-6 py-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
 export function ItemForm({ type }: { type: "lost" | "found" }) {
   const isLost = type === "lost";
@@ -103,10 +100,6 @@ export function ItemForm({ type }: { type: "lost" | "found" }) {
 
       setCreatedItem({ id: data.item.id, imageUrl: data.item.imageUrl, itemName: data.item.itemName });
       setMatches(data.matches ?? []);
-
-      // Short "matching in progress" beat so the user sees the staged animation.
-      setPhase("matching");
-      await new Promise((r) => setTimeout(r, 2400));
       setPhase("done");
     } catch {
       setServerError("Could not reach the server. Check your connection and try again.");
@@ -114,161 +107,142 @@ export function ItemForm({ type }: { type: "lost" | "found" }) {
     }
   }
 
-  const heading = isLost ? "Report Lost Item" : "Report Found Item";
   const buttonLabel = isLost ? "Report Lost Item" : "Report Found Item";
   const successMessage = isLost
     ? "Your lost item has been successfully reported."
     : "Thank you for reporting the found item.";
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">{heading}</h1>
-        <p className="mt-1 text-slate-500">
+    <div className="mx-auto w-full max-w-[600px] px-5 pb-32 pt-6">
+      {/* Header & Illustration */}
+      <div className="mb-6 flex flex-col items-center text-center">
+        <div className="mb-4 flex h-48 w-full items-center justify-center overflow-hidden rounded-xl bg-primary-fixed-dim/20">
+          <Icon name={isLost ? "manage_search" : "inventory_2"} className="text-[96px] text-primary/30" />
+        </div>
+        <h1 className="font-display-lg text-display-lg text-on-surface">
+          {isLost ? "What did you lose?" : "What did you find?"}
+        </h1>
+        <p className="mx-auto max-w-[80%] font-body-md text-body-md text-on-surface-variant">
           {isLost
-            ? "Tell us about the item you lost so we can look for a possible match."
-            : "Tell us about the item you found so we can help connect it with its owner."}
+            ? "Tell us a little about your item so we can help find a possible match."
+            : "Tell us a little about your item so we can help connect it with its owner."}
         </p>
       </div>
 
+      {/* Form */}
       <form
         onSubmit={handleSubmit}
-        className={cn("space-y-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-card sm:p-8", phase === "done" && "hidden")}
+        className={cn("space-y-4 rounded-[24px] bg-surface-container-lowest p-5 shadow-soft", phase === "done" && "hidden")}
         noValidate
       >
-        {/* Image */}
+        <ImageUploader
+          value={imageUrl}
+          onChange={(url) => {
+            setImageUrl(url);
+            setFieldErrors((f) => ({ ...f, image: "" }));
+          }}
+          error={fieldErrors.image}
+        />
+
         <div>
-          <label className="mb-2 block text-sm font-semibold text-slate-700">Upload Photo</label>
-          <ImageUploader value={imageUrl} onChange={(url) => { setImageUrl(url); setFieldErrors((f) => ({ ...f, image: "" })); }} error={fieldErrors.image} />
+          <label className="sr-only" htmlFor="itemName">Item Name</label>
+          <input
+            id="itemName"
+            type="text"
+            value={itemName}
+            onChange={(e) => setItemName(e.target.value)}
+            placeholder="Item Name (e.g. Blue Yeti Rambler)"
+            className={pillInput}
+          />
+          {fieldErrors.itemName && <FieldError message={fieldErrors.itemName} />}
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
-          {/* Name */}
-          <div>
-            <label htmlFor="itemName" className="mb-2 block text-sm font-semibold text-slate-700">
-              Item Name
-            </label>
-            <input
-              id="itemName"
-              type="text"
-              value={itemName}
-              onChange={(e) => setItemName(e.target.value)}
-              placeholder="e.g. Black Leather Wallet"
-              className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-            {fieldErrors.itemName && <FieldError message={fieldErrors.itemName} />}
-          </div>
-
-          {/* Category */}
-          <div>
-            <label htmlFor="category" className="mb-2 block text-sm font-semibold text-slate-700">
-              Category
-            </label>
-            <select
-              id="category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            >
-              <option value="">Select a category…</option>
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            {fieldErrors.category && <FieldError message={fieldErrors.category} />}
-          </div>
+        <div className="relative">
+          <label className="sr-only" htmlFor="category">Category</label>
+          <select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            className={cn(pillInput, "appearance-none pr-12")}
+          >
+            <option value="" disabled>
+              Select Category
+            </option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <Icon name="expand_more" className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+          {fieldErrors.category && <FieldError message={fieldErrors.category} />}
         </div>
 
-        {/* Location */}
-        <div>
-          <label htmlFor="location" className="mb-2 block text-sm font-semibold text-slate-700">
-            {isLost ? "Location Lost" : "Location Found"}
-          </label>
+        <div className="relative">
+          <label className="sr-only" htmlFor="location">Location</label>
           <input
             id="location"
             type="text"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="e.g. Southeast University Library"
-            className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+            placeholder={isLost ? "Where did you last see it?" : "Where did you find it?"}
+            className={cn(pillInput, "pr-12")}
           />
-          <p className="mt-1.5 text-xs text-slate-400">A map picker will be added in a future version.</p>
+          <Icon name="my_location" className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-primary" />
           {fieldErrors.location && <FieldError message={fieldErrors.location} />}
         </div>
 
-        {/* Description */}
         <div>
-          <label htmlFor="description" className="mb-2 block text-sm font-semibold text-slate-700">
-            Description <span className="font-normal text-slate-400">(optional)</span>
-          </label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            placeholder={
-              isLost
-                ? "e.g. Black leather wallet with a small silver logo and a scratch on the front."
-                : "e.g. Black wallet found near the library entrance."
-            }
-            className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-          />
-        </div>
-
-        {/* Date */}
-        <div>
-          <label htmlFor="date" className="mb-2 block text-sm font-semibold text-slate-700">
-            {isLost ? "Date Lost" : "Date Found"}
-          </label>
+          <label className="sr-only" htmlFor="date">Date</label>
           <input
             id="date"
             type="date"
             value={date}
             max={new Date().toISOString().slice(0, 10)}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 sm:w-56"
+            className={cn(pillInput, "text-on-surface-variant")}
           />
           {fieldErrors.date && <FieldError message={fieldErrors.date} />}
         </div>
 
+        <div>
+          <label className="sr-only" htmlFor="description">Description</label>
+          <textarea
+            id="description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            placeholder="Any distinguishing marks? (e.g. scratch on the bottom left corner)"
+            className="w-full resize-none rounded-xl border border-secondary-fixed-dim bg-surface-bright px-6 py-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+        </div>
+
         {serverError && (
-          <p className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-200">
-            <AlertCircle className="h-4 w-4 shrink-0" />
+          <p className="flex items-center gap-2 rounded-xl bg-error-container/50 px-4 py-3 text-sm text-on-error-container">
+            <Icon name="error" className="text-[18px] shrink-0" />
             {serverError}
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={!canSubmit || phase === "submitting" || phase === "matching"}
-          className={cn(
-            "flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto",
-            isLost ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700",
-          )}
-        >
-          {phase === "submitting" ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Saving your report…
-            </>
-          ) : (
-            <>
-              {buttonLabel}
-              <ArrowRight className="h-4 w-4" />
-            </>
-          )}
-        </button>
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={!canSubmit || phase === "submitting"}
+            className={cn(
+              "flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-label-md text-label-md text-on-primary shadow-md transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60",
+            )}
+          >
+            {phase === "submitting" ? "Saving your report…" : buttonLabel}
+            {phase !== "submitting" && <Icon name="send" filled className="text-[20px]" />}
+          </button>
+        </div>
       </form>
-
-      {phase === "matching" && <MatchingScreen isLost={isLost} imageUrl={createdItem?.imageUrl ?? null} />}
 
       {phase === "done" && createdItem && (
         <div className="space-y-5">
-          <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <CircleCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <div className="flex items-start gap-3 rounded-[24px] bg-secondary-container/40 p-5">
+            <Icon name="check_circle" filled className="mt-0.5 text-[24px] text-secondary" />
             <div>
-              <p className="font-semibold text-emerald-900">{successMessage}</p>
-              <p className="mt-0.5 text-sm text-emerald-700">
+              <p className="font-label-bold text-label-bold text-on-surface">{successMessage}</p>
+              <p className="mt-0.5 text-sm text-on-surface-variant">
                 {isLost
                   ? "We compared your report with existing found reports."
                   : "We compared your report with existing lost reports."}
@@ -288,79 +262,30 @@ export function ItemForm({ type }: { type: "lost" | "found" }) {
 }
 
 function FieldError({ message }: { message: string }) {
-  return <p className="mt-1.5 text-sm text-rose-600">{message}</p>;
-}
-
-function MatchingScreen({ isLost, imageUrl }: { isLost: boolean; imageUrl: string | null }) {
-  const [step, setStep] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setStep((s) => (s + 1) % MATCH_MESSAGES.length), 800);
-    return () => clearInterval(id);
-  }, []);
-
-  return (
-    <div className="flex flex-col items-center gap-5 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-card">
-      <div className="relative flex h-16 w-16 items-center justify-center">
-        <span className="absolute inset-0 animate-ping rounded-full bg-match-100" />
-        <span className="relative flex h-12 w-12 items-center justify-center rounded-full bg-match-600 text-white">
-          <Target className="h-6 w-6" />
-        </span>
-      </div>
-
-      <h2 className="text-xl font-bold text-slate-900">Looking for a possible match…</h2>
-
-      <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-slate-200">
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="Reported item" className="h-full w-full object-cover" />
-        ) : (
-          <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
-        )}
-      </div>
-
-      <div className="flex flex-col items-center gap-1.5">
-        {MATCH_MESSAGES.map((msg, i) => (
-          <p
-            key={msg}
-            className={cn(
-              "text-sm transition-all duration-300",
-              i === step ? "font-medium text-slate-700" : "text-slate-300",
-            )}
-          >
-            {msg}
-          </p>
-        ))}
-      </div>
-
-      <p className="text-xs text-slate-400">
-        Comparing against existing {isLost ? "found" : "lost"} reports.
-      </p>
-    </div>
-  );
+  return <p className="mt-2 pl-4 text-sm text-error">{message}</p>;
 }
 
 function NoMatchScreen({ isLost }: { isLost: boolean }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-card">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-        <Target className="h-7 w-7" />
+    <div className="rounded-[24px] border border-surface-variant/50 bg-surface-container-lowest p-8 text-center shadow-card">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
+        <Icon name="search_off" className="text-[28px]" />
       </div>
-      <h2 className="mt-4 text-xl font-bold text-slate-900">No Possible Match Yet</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+      <h2 className="mt-4 font-headline-sm text-headline-sm text-on-surface">No Possible Match Yet</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm text-on-surface-variant">
         We couldn&apos;t find a strong match right now. Your report will remain active and can be
         matched with future {isLost ? "found" : "lost"} reports.
       </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
+      <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
         <Link
           href="/history"
-          className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-700"
+          className="rounded-full bg-primary px-6 py-3 font-label-md text-label-md text-on-primary shadow-md transition-opacity hover:opacity-90"
         >
           View My History
         </Link>
         <Link
           href="/browse"
-          className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          className="rounded-full border border-secondary-fixed-dim bg-surface px-6 py-3 font-label-md text-label-md text-on-surface transition-colors hover:bg-surface-container-low"
         >
           Browse reports
         </Link>
@@ -382,144 +307,157 @@ function MatchFoundScreen({
   const matched = top.matchedItem;
   const b = top.breakdown;
 
+  const reasons: { icon: string; title: string; detail: string }[] = [];
+  if (b) {
+    reasons.push({
+      icon: "photo_camera",
+      title: "High visual similarity",
+      detail: `Our AI detected a ${b.image}% visual match.`,
+    });
+    reasons.push({
+      icon: "category",
+      title: b.category === 100 ? "Same category" : "Related category",
+      detail: `Both listed under '${item.itemName}' ${b.category === 100 ? "category" : "with a close category match"}.`,
+    });
+    reasons.push({
+      icon: "near_me",
+      title: b.location >= 70 ? "Nearby location" : "Location in range",
+      detail:
+        b.location >= 70
+          ? "Reported within a nearby area."
+          : "Reported at a related location.",
+    });
+    reasons.push({
+      icon: "schedule",
+      title: b.date >= 70 ? "Similar timeframe" : "Close reporting date",
+      detail:
+        b.date >= 70
+          ? "Both were reported around the same time."
+          : "The reports were made within a comparable window.",
+    });
+  }
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-match-200 bg-white shadow-card">
-      <div className="border-b border-match-100 bg-match-50 px-6 py-5">
-        <p className="flex items-center gap-2 font-bold text-match-700">
-          <Target className="h-5 w-5" />
-          Possible Match Found
-        </p>
-        <p className="mt-1 text-sm text-match-700/80">
-          {isLost
-            ? "A found item looks similar to what you reported."
-            : "Your found item looks similar to a reported lost item. Its owner has been notified."}
+    <div className="overflow-hidden rounded-[24px] bg-surface-container-lowest shadow-soft animate-fade-in-up">
+      {/* Header */}
+      <div className="px-5 pb-2 pt-6 text-center">
+        <h2 className="font-display-md text-display-md tracking-tight text-primary">Possible Match Found!</h2>
+        <p className="font-body-md text-body-md text-on-surface-variant">
+          We&apos;ve identified an item that looks very similar to yours.
         </p>
       </div>
 
-      <div className="p-6">
-        <div className="flex flex-col items-center">
-          <p className="text-5xl font-extrabold text-slate-900">{top.similarityScore}%</p>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-slate-400">
-            Similar
-          </p>
+      {/* Success illustration */}
+      <div className="flex justify-center px-5 py-4">
+        <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-surface-container shadow-soft">
+          <span className="absolute inset-0 animate-ping-soft rounded-full bg-primary/10" />
+          <span className="absolute inset-2 animate-pulse rounded-full bg-primary/20" />
+          <Icon name="check_circle" filled className="relative z-10 text-[44px] text-primary" />
         </div>
+      </div>
 
-        {/* Side-by-side images */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <MatchImage
-            label={isLost ? "Your Lost Item" : "Your Found Item"}
-            imageUrl={item.imageUrl}
-            name={item.itemName}
-            accent={isLost ? "rose" : "emerald"}
-          />
-          <MatchImage
-            label={isLost ? "Possible Found Item" : "Possible Lost Item"}
-            imageUrl={matched?.imageUrl ?? null}
-            name={matched?.itemName ?? ""}
-            location={matched?.location}
-            date={matched?.date ? formatDate(matched.date) : undefined}
-            accent="match"
-          />
-        </div>
-
-        {matched && (
-          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
-            <span className="font-semibold">{matched.itemName}</span>
-            {matched.location && (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="h-4 w-4 text-slate-400" />
-                {matched.location}
-              </span>
-            )}
-            {matched.date && (
-              <span className="inline-flex items-center gap-1">
-                <CalendarDays className="h-4 w-4 text-slate-400" />
-                {formatDate(matched.date)}
-              </span>
-            )}
+      {/* Comparison */}
+      <div className="flex flex-col items-center px-5 py-4">
+        <div className="relative flex w-full items-center justify-center gap-4">
+          <div className="flex flex-col items-center">
+            <div className="mb-2 h-24 w-24 overflow-hidden rounded-2xl border-4 border-surface bg-surface-container-high shadow-soft">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={item.imageUrl} alt={item.itemName} className="h-full w-full object-cover" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+              Your Item
+            </span>
           </div>
-        )}
 
-        {b && (
-          <div className="mt-6">
-            <p className="text-sm font-semibold text-slate-900">Match Information</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <InfoChip label="Image similarity" value={`${b.image}%`} />
-              <InfoChip label="Category" value={b.category === 100 ? "Same" : "Different"} />
-              <InfoChip label="Location" value={b.location >= 70 ? "Nearby" : b.location > 0 ? "Partially" : "Different"} />
-              <InfoChip label="Date" value={b.date >= 70 ? "Similar" : b.date > 0 ? "Partially similar" : "Different"} />
+          <div className="relative mt-[-24px] flex flex-1 flex-col items-center justify-center">
+            <div className="absolute left-0 top-1/2 z-0 w-full -translate-y-1/2 border-t-2 border-dashed border-primary/30" />
+            <div className="z-10 flex flex-col items-center rounded-full border border-primary/20 bg-surface px-3 py-1 shadow-soft">
+              <span className="font-headline-sm text-headline-sm text-primary">{top.similarityScore}%</span>
+              <span className="font-caption text-caption text-primary/80">Similar</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <div className="relative mb-2 h-24 w-24 overflow-hidden rounded-2xl border-4 border-surface bg-surface-container-high shadow-soft">
+              {matched ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={matched.imageUrl} alt={matched.itemName} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-on-surface-variant">
+                  <Icon name="image" className="text-[28px]" />
+                </div>
+              )}
+              <span className="absolute right-1 top-1 h-3 w-3 animate-pulse rounded-full border-2 border-surface bg-primary" />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+              Possible Match
+            </span>
+          </div>
+        </div>
+
+        {/* Matched item details */}
+        {matched && (
+          <div className="mt-5 w-full rounded-2xl bg-surface-container-low p-4 shadow-soft">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="font-headline-sm text-headline-sm text-on-surface line-clamp-1">
+                  {matched.itemName}
+                </h3>
+                <p className="font-body-md text-body-md text-on-surface-variant line-clamp-1">
+                  {matched.location}
+                </p>
+              </div>
+              {matched.date && (
+                <span className="shrink-0 rounded-full bg-surface-container px-3 py-1 font-caption text-caption text-on-surface-variant">
+                  {formatDate(matched.date)}
+                </span>
+              )}
             </div>
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-xs text-slate-400">
-            {matches.length > 1 ? `${matches.length} possible matches found` : "This is a possible match, not a confirmed one."}
-          </p>
-          <Link
-            href={`/matches/${top.matchId}`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-match-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-match-700"
-          >
-            View Match
-            <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MatchImage({
-  label,
-  imageUrl,
-  name,
-  location,
-  date,
-  accent,
-}: {
-  label: string;
-  imageUrl: string | null;
-  name: string;
-  location?: string;
-  date?: string;
-  accent: "rose" | "emerald" | "match";
-}) {
-  const ring = {
-    rose: "ring-rose-200",
-    emerald: "ring-emerald-200",
-    match: "ring-match-200",
-  }[accent];
-
-  return (
-    <div className="overflow-hidden rounded-xl border border-slate-200">
-      <div className="relative aspect-[4/3] bg-slate-100">
-        {imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-slate-300">
-            <Loader2 className="h-6 w-6 animate-spin" />
+        {/* Why this may be a match */}
+        {reasons.length > 0 && (
+          <div className="mt-5 w-full">
+            <h4 className="mb-3 font-label-md text-label-md text-on-surface-variant">
+              Why this may be a match
+            </h4>
+            <div className="flex flex-col gap-2">
+              {reasons.map((r) => (
+                <div
+                  key={r.icon}
+                  className="flex items-center gap-3 rounded-2xl border border-surface-container-highest bg-surface-container-lowest p-3"
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon name={r.icon} className="text-[18px]" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-label-md text-label-md text-on-surface">{r.title}</p>
+                    <p className="font-caption text-caption text-on-surface-variant">{r.detail}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
-      <div className={cn("border-t-4 p-3", ring)}>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-        <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">{name}</p>
-        {(location || date) && (
-          <p className="mt-0.5 truncate text-xs text-slate-500">
-            {[location, date].filter(Boolean).join(" · ")}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
 
-function InfoChip({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-      <span className="text-sm text-slate-500">{label}</span>
-      <span className="text-sm font-semibold text-slate-900">{value}</span>
+      {/* Actions */}
+      <div className="mt-2 space-y-2 bg-surface-container-low px-5 py-6">
+        <Link
+          href={`/matches/${top.matchId}`}
+          className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 font-label-md text-label-md text-on-primary shadow-soft transition-opacity hover:opacity-90"
+        >
+          View Match
+          <Icon name="arrow_forward" className="text-[18px]" />
+        </Link>
+        <Link
+          href="/history"
+          className="block w-full rounded-full py-3 text-center font-label-md text-label-md text-primary transition-colors hover:bg-primary/5"
+        >
+          Not my item
+        </Link>
+      </div>
     </div>
   );
 }

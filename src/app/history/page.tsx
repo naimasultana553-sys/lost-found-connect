@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { Clock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { lostItemsWithMatches } from "@/lib/queries";
 import { ItemCard } from "@/components/ItemCard";
 import { EmptyState } from "@/components/EmptyState";
+import { TopBar } from "@/components/TopBar";
 import { toFoundCardData, toLostCardData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -38,38 +38,36 @@ export default async function HistoryPage({
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
   const tabs = [
-    { key: "all", label: "All" },
+    { key: "all", label: "All Items" },
     { key: "lost", label: "Lost" },
     { key: "found", label: "Found" },
   ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">My History</h1>
-        <p className="mt-1 text-slate-500">
-          Everything you&apos;ve reported — lost and found — in one place.
-        </p>
-      </div>
+    <>
+      <TopBar />
+      <main className="mx-auto w-full max-w-[600px] px-5 pb-32 pt-4">
+        <h2 className="mb-5 font-display-lg text-display-lg text-on-surface">My History</h2>
 
-      <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
-        {tabs.map((tab) => (
-          <Link
-            key={tab.key}
-            href={tab.key === "all" ? "/history" : `?type=${tab.key}`}
-            className={cn(
-              "flex-1 rounded-lg px-4 py-2 text-center text-sm font-semibold transition-colors",
-              type === tab.key
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-800",
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </div>
+        {/* Filter tabs */}
+        <div className="no-scrollbar mb-8 flex gap-2 overflow-x-auto pb-2">
+          {tabs.map((tab) => (
+            <Link
+              key={tab.key}
+              href={tab.key === "all" ? "/history" : `?type=${tab.key}`}
+              className={cn(
+                "whitespace-nowrap rounded-full px-6 py-2 font-label-md text-label-md transition-transform active:scale-95",
+                type === tab.key
+                  ? "bg-primary text-on-primary"
+                  : "bg-surface-container text-on-surface-variant hover:bg-surface-variant",
+              )}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
 
-      <div className="mt-8">
+        {/* Items list */}
         {items.length === 0 ? (
           <EmptyState
             title={type === "all" ? "No History Yet" : `No ${type} items Yet`}
@@ -79,16 +77,16 @@ export default async function HistoryPage({
                 : `You haven't reported any ${type} items yet.`
             }
             action={
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/report/lost"
-                  className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
+                  className="rounded-full bg-error px-6 py-3 font-label-md text-label-md text-on-error shadow-md transition-opacity hover:opacity-90"
                 >
                   Report a lost item
                 </Link>
                 <Link
                   href="/report/found"
-                  className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                  className="rounded-full bg-primary px-6 py-3 font-label-md text-label-md text-on-primary shadow-md transition-opacity hover:opacity-90"
                 >
                   Report a found item
                 </Link>
@@ -96,19 +94,13 @@ export default async function HistoryPage({
             }
           />
         ) : (
-          <>
-            <p className="mb-4 flex items-center gap-1.5 text-sm text-slate-500">
-              <Clock className="h-4 w-4" />
-              {items.length} {items.length === 1 ? "report" : "reports"}
-            </p>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {items.map((item) => (
-                <ItemCard key={`${item.type}-${item.id}`} item={item} />
-              ))}
-            </div>
-          </>
+          <div className="flex flex-col gap-6">
+            {items.map((item) => (
+              <ItemCard key={`${item.type}-${item.id}`} item={item} />
+            ))}
+          </div>
         )}
-      </div>
-    </div>
+      </main>
+    </>
   );
 }

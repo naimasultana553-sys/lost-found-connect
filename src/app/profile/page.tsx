@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { formatDate } from "@/lib/utils";
+import { BackHeader } from "@/components/BackHeader";
 
 export const metadata: Metadata = { title: "Profile" };
 export const dynamic = "force-dynamic";
@@ -18,41 +19,46 @@ export default async function ProfilePage() {
   const stats = [
     { label: "Lost items", value: lostCount },
     { label: "Found items", value: foundCount },
-    { label: "Unread notifications", value: unreadCount },
+    { label: "Unread alerts", value: unreadCount },
   ];
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card sm:p-8">
-        <div className="flex items-center gap-4">
-          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-slate-800 text-2xl font-bold text-white sm:h-16 sm:w-16">
-            {user.name.charAt(0).toUpperCase()}
-          </span>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">{user.name}</h1>
-            <p className="text-sm text-slate-500">{user.email}</p>
-            <p className="mt-1 text-xs text-slate-400">Joined {formatDate(user.createdAt)}</p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center sm:p-4">
-              <p className="text-xl font-bold text-slate-900 sm:text-2xl">{s.value}</p>
-              <p className="mt-0.5 text-[11px] text-slate-500 sm:text-xs">{s.label}</p>
+    <>
+      <BackHeader title="Profile" />
+      <main className="mx-auto w-full max-w-[600px] px-5 pb-32 pt-6">
+        <div className="rounded-[24px] border border-surface-variant/50 bg-surface-container-lowest p-6 shadow-card">
+          <div className="flex items-center gap-4">
+            <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary text-2xl font-bold text-on-primary">
+              {user.name.charAt(0).toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <h1 className="font-headline-sm text-headline-sm text-on-surface">{user.name}</h1>
+              <p className="truncate text-sm text-on-surface-variant">{user.email}</p>
+              <p className="mt-1 font-caption text-caption text-on-surface-variant/70">
+                Joined {formatDate(user.createdAt)}
+              </p>
             </div>
-          ))}
-        </div>
+          </div>
 
-        <form action="/api/auth/logout" method="post" className="mt-6">
-          <button
-            type="submit"
-            className="w-full rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-          >
-            Sign out
-          </button>
-        </form>
-      </div>
-    </div>
+          <div className="mt-6 grid grid-cols-3 gap-3">
+            {stats.map((s) => (
+              <div key={s.label} className="rounded-[24px] border border-surface-variant/50 bg-surface-container-low p-3 text-center">
+                <p className="font-display-md text-display-md text-on-surface">{s.value}</p>
+                <p className="mt-0.5 font-caption text-caption text-on-surface-variant">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          <form action="/api/auth/logout" method="post" className="mt-6">
+            <button
+              type="submit"
+              className="w-full rounded-full border border-secondary-fixed-dim bg-surface px-5 py-3 font-label-md text-label-md text-on-surface transition-colors hover:bg-surface-container-low"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
+      </main>
+    </>
   );
 }

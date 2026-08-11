@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
+
+const pillInput =
+  "w-full rounded-full border border-secondary-fixed-dim bg-surface-bright px-6 py-3.5 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
@@ -44,104 +47,111 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md">
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card sm:p-8">
-        <h1 className="text-2xl font-bold text-slate-900">
+    <div className="mx-auto w-full max-w-[440px] px-5 py-10">
+      <div className="flex flex-col items-center text-center">
+        <div className="flex items-center gap-2">
+          <Icon name="manage_search" filled className="text-[32px] text-primary" />
+          <span className="font-display-md text-display-md tracking-tight text-primary">FindBack</span>
+        </div>
+        <h1 className="mt-5 font-display-lg text-display-lg text-on-surface">
           {isLogin ? "Welcome back" : "Create your account"}
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
           {isLogin
             ? "Sign in to view your items and notifications."
             : "Join to report lost and found items and get matched."}
         </p>
-
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate>
-          {!isLogin && (
-            <div>
-              <label htmlFor="name" className="mb-1.5 block text-sm font-semibold text-slate-700">
-                Name
-              </label>
-              <input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Jane Doe"
-                required
-                className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-              />
-            </div>
-          )}
-
-          <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={isLogin ? "Your password" : "At least 8 characters"}
-              required
-              minLength={isLogin ? undefined : 8}
-              className="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
-            />
-          </div>
-
-          {error && (
-            <p className="flex items-center gap-2 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700 ring-1 ring-inset ring-rose-200">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className={cn(
-              "flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              isLogin ? "bg-slate-900 hover:bg-slate-700" : "bg-brand-600 hover:bg-brand-700",
-            )}
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isLogin ? "Sign in" : "Create account"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-slate-500">
-          {isLogin ? (
-            <>
-              New here?{" "}
-              <Link href="/register" className="font-semibold text-brand-700 hover:text-brand-800">
-                Create an account
-              </Link>
-            </>
-          ) : (
-            <>
-              Already have an account?{" "}
-              <Link href="/login" className="font-semibold text-brand-700 hover:text-brand-800">
-                Sign in
-              </Link>
-            </>
-          )}
-        </p>
       </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="mt-6 space-y-4 rounded-[24px] bg-surface-container-lowest p-6 shadow-soft"
+        noValidate
+      >
+        {!isLogin && (
+          <div>
+            <label htmlFor="name" className="mb-1.5 block font-label-md text-label-md text-on-surface">
+              Name
+            </label>
+            <input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Jane Doe"
+              required
+              className={pillInput}
+            />
+          </div>
+        )}
+
+        <div>
+          <label htmlFor="email" className="mb-1.5 block font-label-md text-label-md text-on-surface">
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            className={pillInput}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="mb-1.5 block font-label-md text-label-md text-on-surface">
+            Password
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder={isLogin ? "Your password" : "At least 8 characters"}
+            required
+            minLength={isLogin ? undefined : 8}
+            className={pillInput}
+          />
+        </div>
+
+        {error && (
+          <p className="flex items-center gap-2 rounded-xl bg-error-container/50 px-4 py-3 text-sm text-on-error-container">
+            <Icon name="error" className="text-[18px] shrink-0" />
+            {error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={busy}
+          className={cn(
+            "flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3.5 font-label-md text-label-md text-on-primary shadow-md transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60",
+          )}
+        >
+          {busy && <Icon name="hourglass_top" className="animate-spin text-[18px]" />}
+          {isLogin ? "Sign in" : "Create account"}
+        </button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-on-surface-variant">
+        {isLogin ? (
+          <>
+            New here?{" "}
+            <Link href="/register" className="font-semibold text-primary hover:text-primary">
+              Create an account
+            </Link>
+          </>
+        ) : (
+          <>
+            Already have an account?{" "}
+            <Link href="/login" className="font-semibold text-primary hover:text-primary">
+              Sign in
+            </Link>
+          </>
+        )}
+      </p>
     </div>
   );
 }

@@ -1,68 +1,95 @@
 import Link from "next/link";
-import { MapPin, CalendarDays, Package, ArrowRight, Target } from "lucide-react";
-import { LostFoundBadge } from "@/components/LostFoundBadge";
-import { StatusBadge } from "@/components/StatusBadge";
+import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
+import { Icon } from "@/components/Icon";
 import type { ItemCardData } from "@/lib/types";
 
-export function ItemCard({ item }: { item: ItemCardData }) {
+function TypeBadge({ type, className }: { type: "lost" | "found"; className?: string }) {
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift">
-      <Link href={`/items/${item.id}`} className="relative block aspect-[4/3] w-full overflow-hidden bg-slate-100">
+    <span
+      className={cn(
+        "px-3 py-1 text-[12px] font-bold uppercase tracking-wider text-on-error shadow-sm backdrop-blur-sm",
+        type === "lost" ? "bg-error/90" : "bg-primary/90 text-on-primary",
+        "rounded-full",
+        className,
+      )}
+    >
+      {type === "lost" ? "Lost" : "Found"}
+    </span>
+  );
+}
+
+export function ItemCard({ item }: { item: ItemCardData }) {
+  const possibleMatch = item.bestMatchScore !== null;
+  const isLost = item.type === "lost";
+  const searching = isLost && !possibleMatch && item.status === "SEARCHING";
+
+  const status = isLost
+    ? possibleMatch
+      ? { icon: "check_circle", label: `Possible Match · ${item.bestMatchScore}%`, tone: "secondary" as const }
+      : { icon: "radar", label: "Searching...", tone: "plain" as const }
+    : item.status === "POSSIBLE_MATCH"
+      ? { icon: "check_circle", label: "Possible Match!", tone: "secondary" as const }
+      : { icon: "inventory_2", label: "Available", tone: "plain" as const };
+
+  return (
+    <article className="relative overflow-hidden rounded-[24px] border border-surface-variant/50 bg-surface-container-lowest shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift">
+      <TypeBadge type={item.type} className="absolute right-4 top-4 z-10" />
+
+      <Link href={`/items/${item.id}`} className="relative block h-[200px] w-full bg-surface-container-high">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={item.imageUrl}
-          alt={item.itemName}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-        />
-        <LostFoundBadge type={item.type} className="absolute left-3 top-3 shadow-sm" />
+        <img src={item.imageUrl} alt={item.itemName} className="h-full w-full object-cover" />
       </Link>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <div className="flex items-start justify-between gap-2">
-          <Link href={`/items/${item.id}`} className="font-semibold text-slate-900 line-clamp-1 hover:text-brand-700">
-            {item.itemName}
-          </Link>
-          <StatusBadge status={item.status} />
-        </div>
+      <div className="p-4">
+        <Link href={`/items/${item.id}`} className="font-headline-sm text-headline-sm text-on-surface line-clamp-1 hover:text-primary">
+          {item.itemName}
+        </Link>
 
-        <div className="flex flex-col gap-1 text-sm text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+        <div className="mb-3 mt-2 flex flex-col gap-1 text-body-md text-on-surface-variant">
+          <span className="flex items-center gap-2">
+            <Icon name="location_on" className="text-[18px]" />
             <span className="line-clamp-1">{item.location}</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <CalendarDays className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            {item.type === "lost" ? "Lost" : "Found"} on {formatDate(item.date)}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Package className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-            {item.category}
+          <span className="flex items-center gap-2">
+            <Icon name="calendar_today" className="text-[18px]" />
+            {isLost ? "Lost" : "Found"} on {formatDate(item.date)}
           </span>
         </div>
 
-        {item.description && (
-          <p className="line-clamp-2 text-sm text-slate-500">{item.description}</p>
-        )}
-
-        {item.type === "lost" && item.bestMatchScore !== null && (
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
-            <span className="inline-flex items-center gap-1 rounded-full bg-match-50 px-2.5 py-0.5 text-xs font-semibold text-match-700 ring-1 ring-inset ring-match-200">
-              <Target className="h-3 w-3" />
-              Possible Match · {item.bestMatchScore}%
-            </span>
-            {item.bestMatchId && (
-              <Link
-                href={`/matches/${item.bestMatchId}`}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-match-700 hover:text-match-800"
-              >
-                View Match
-                <ArrowRight className="h-3 w-3" />
-              </Link>
+        <div className="flex items-center justify-between border-t border-surface-variant pt-3">
+          <span
+            className={cn(
+              "flex items-center gap-2 font-label-md text-label-md",
+              status.tone === "secondary"
+                ? "rounded-full bg-secondary-container px-3 py-1 text-secondary"
+                : "text-primary",
             )}
-          </div>
-        )}
+          >
+            <Icon
+              name={status.icon}
+              className={cn("text-[20px]", searching && "animate-pulse")}
+            />
+            {status.label}
+          </span>
+
+          {possibleMatch && item.bestMatchId ? (
+            <Link
+              href={`/matches/${item.bestMatchId}`}
+              className="rounded-full px-4 py-2 font-label-md text-label-md text-primary transition-colors hover:bg-primary-container/10"
+            >
+              Review
+            </Link>
+          ) : (
+            <Link
+              href={`/items/${item.id}`}
+              className="rounded-full px-4 py-2 font-label-md text-label-md text-primary transition-colors hover:bg-primary-container/10"
+            >
+              Details
+            </Link>
+          )}
+        </div>
       </div>
-    </div>
+    </article>
   );
 }

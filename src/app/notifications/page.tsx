@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { notificationsWithMatches } from "@/lib/queries";
 import { timeAgo } from "@/lib/utils";
+import { TopBar } from "@/components/TopBar";
 import { NotificationsList, type NotificationItemData } from "@/components/NotificationsList";
 
 export const metadata: Metadata = { title: "Notifications" };
@@ -36,15 +37,18 @@ export default async function NotificationsPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">Notifications</h1>
-        <p className="mt-1 text-slate-500">
-          Updates about possible matches for your lost items.
-        </p>
-      </div>
+    <>
+      <TopBar />
+      <main className="mx-auto w-full max-w-[600px] px-5 pb-32 pt-4">
+        <div className="mb-6">
+          <h1 className="font-display-lg text-display-lg text-on-surface">Alerts</h1>
+          <p className="font-body-md text-body-md text-on-surface-variant">
+            Updates about possible matches for your lost items.
+          </p>
+        </div>
 
-      <NotificationsList notifications={items} initialUnread={unreadCount} />
-    </div>
+        <NotificationsList notifications={items} initialUnread={unreadCount} />
+      </main>
+    </>
   );
 }

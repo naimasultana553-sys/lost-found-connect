@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImagePlus, Loader2, Trash2, AlertCircle } from "lucide-react";
+import { Icon } from "@/components/Icon";
 import { cn } from "@/lib/utils";
 
 interface ImageUploaderProps {
@@ -48,16 +48,16 @@ export function ImageUploader({ value, onChange, error }: ImageUploaderProps) {
   return (
     <div>
       {value ? (
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200">
+        <div className="relative overflow-hidden rounded-[24px] border border-surface-variant/50 shadow-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={value} alt="Item preview" className="aspect-[4/3] w-full object-cover" />
           <button
             type="button"
             onClick={() => onChange(null)}
-            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-700 shadow transition-colors hover:bg-white hover:text-rose-600"
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-on-surface-variant shadow transition-colors hover:bg-white hover:text-error"
             aria-label="Remove image"
           >
-            <Trash2 className="h-4 w-4" />
+            <Icon name="close" className="text-[20px]" />
           </button>
         </div>
       ) : (
@@ -66,25 +66,29 @@ export function ImageUploader({ value, onChange, error }: ImageUploaderProps) {
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
           className={cn(
-            "flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed transition-colors",
+            "flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 transition-colors",
             uploadError || error
-              ? "border-rose-300 bg-rose-50/50 hover:border-rose-400"
-              : "border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100",
+              ? "border-error-container bg-error-container/20 hover:border-error"
+              : "border-tertiary-fixed-dim bg-surface-container-low hover:border-primary",
             "disabled:cursor-not-allowed disabled:opacity-60",
           )}
         >
           {uploading ? (
             <>
-              <Loader2 className="h-6 w-6 animate-spin text-slate-500" />
-              <span className="text-sm font-medium text-slate-600">Uploading image…</span>
+              <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-primary-container/20">
+                <Icon name="hourglass_top" className="animate-spin text-[28px] text-primary" />
+              </div>
+              <span className="font-label-md text-label-md text-primary">Uploading image…</span>
             </>
           ) : (
             <>
-              <ImagePlus className="h-7 w-7 text-slate-400" />
-              <span className="text-sm font-medium text-slate-700">
-                Click to upload an image
+              <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-primary-container/20">
+                <Icon name="add_a_photo" className="text-[28px] text-primary" />
+              </div>
+              <span className="font-label-md text-label-md text-primary">Upload item photo</span>
+              <span className="mt-1 font-caption text-caption text-on-surface-variant">
+                PNG, JPG up to 5MB
               </span>
-              <span className="text-xs text-slate-400">JPG, PNG or WEBP · max 5MB</span>
             </>
           )}
         </button>
@@ -99,8 +103,8 @@ export function ImageUploader({ value, onChange, error }: ImageUploaderProps) {
       />
 
       {(uploadError || error) && (
-        <p className="mt-2 flex items-center gap-1.5 text-sm text-rose-600">
-          <AlertCircle className="h-4 w-4 shrink-0" />
+        <p className="mt-2 flex items-center gap-1.5 text-sm text-error">
+          <Icon name="error" className="text-[18px]" />
           {uploadError ?? error}
         </p>
       )}
