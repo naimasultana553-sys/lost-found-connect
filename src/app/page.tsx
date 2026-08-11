@@ -13,21 +13,24 @@ export default async function HomePage() {
       {/* Top section: brand & intro */}
       <div className="relative z-10 mt-10 flex flex-col items-center px-5 text-center">
         <div className="flex items-center gap-2">
-          <Icon name="manage_search" filled className="text-[32px] text-primary" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icon.svg"
+            alt="FindBack logo"
+            className="h-9 w-9 rounded-full shadow-sm"
+          />
           <h1 className="font-display-md text-display-md tracking-tight text-primary">FindBack</h1>
         </div>
 
         {/* Illustration area */}
         <div className="relative mb-4 mt-10 flex aspect-square w-full max-w-[280px] items-center justify-center rounded-full bg-surface-container shadow-[0_12px_24px_0_rgba(0,104,95,0.06)]">
           <div className="absolute inset-0 -z-10 rounded-full bg-primary-fixed opacity-30 blur-2xl" />
-          <div className="relative z-10 flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-primary-container/15 to-secondary-container/30">
-            <div className="relative">
-              <Icon name="manage_search" className="text-[120px] text-primary" />
-              <span className="absolute -right-4 -top-2 flex h-12 w-12 items-center justify-center rounded-full bg-secondary-container shadow-card">
-                <Icon name="check_circle" filled className="text-[24px] text-secondary" />
-              </span>
-            </div>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/welcome-illustration.jpg"
+            alt="A friendly illustration of someone searching for a lost item in a bright park"
+            className="relative z-10 h-full w-full rounded-full object-cover"
+          />
         </div>
 
         {/* Intro text */}

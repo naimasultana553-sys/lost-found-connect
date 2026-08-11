@@ -21,11 +21,14 @@ export async function TopBar() {
         >
           <Icon name="search" className="text-[24px]" />
         </Link>
-        <Link
-          href="/"
-          className="font-display-md text-display-md tracking-tight text-primary"
-        >
-          FindBack
+        <Link href="/" className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/icon.svg"
+            alt=""
+            className="h-8 w-8 rounded-full"
+          />
+          <span className="font-display-md text-display-md tracking-tight text-primary">FindBack</span>
         </Link>
         <Link
           href="/notifications"

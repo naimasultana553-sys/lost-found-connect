@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Nunito_Sans } from "next/font/google";
 import { BottomNav } from "@/components/BottomNav";
 import "./globals.css";
@@ -17,6 +17,20 @@ export const metadata: Metadata = {
   },
   description:
     "Report lost and found items, upload a photo, and let FindBack compare images to find possible matches and notify owners.",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "FindBack",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#00685f",
 };
 
 export default function RootLayout({
